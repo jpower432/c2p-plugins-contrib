@@ -1,0 +1,35 @@
+{
+  "metadata": {
+    "id": "kyverno",
+    "description": "Kyverno PVP Plugin",
+    "version": "0.0.1",
+    "types": [
+      "pvp"
+    ]
+  },
+  "executablePath": "kyverno-plugin",
+  "sha256": "",
+  "configuration": [
+    {
+      "name": "policy-dir",
+      "description": "A directory where kyverno policies are located.",
+      "required": true
+    },
+    {
+      "name": "policy-results-dir",
+      "description": "A directory where policy results are located",
+      "required": true
+    },
+    {
+      "name": "temp-dir",
+      "description": "A temporary directory for policies",
+      "required": true
+    },
+    {
+      "name": "output-dir",
+      "description": "The output directory for policies",
+      "required": false,
+      "default": "."
+    }
+  ]
+}

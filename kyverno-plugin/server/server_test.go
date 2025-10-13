@@ -1,0 +1,76 @@
+/*
+ Copyright 2025 The OSCAL Compass Authors
+ SPDX-License-Identifier: Apache-2.0
+*/
+
+package server
+
+import (
+	"context"
+	"os"
+	"testing"
+
+	"github.com/oscal-compass/oscal-sdk-go/extensions"
+	"github.com/oscal-compass/oscal-sdk-go/models"
+	"github.com/oscal-compass/oscal-sdk-go/models/components"
+	"github.com/oscal-compass/oscal-sdk-go/rules"
+	"github.com/oscal-compass/oscal-sdk-go/validation"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/oscal-compass/c2p-plugins-contrib/internal/utils"
+)
+
+func TestOscal2Policy(t *testing.T) {
+	policyDir := utils.PathFromInternalDirectory("./testdata/kyverno/policy-resources")
+
+	tempDirPath := utils.PathFromInternalDirectory("./testdata/_test")
+	err := os.MkdirAll(tempDirPath, os.ModePerm)
+	assert.NoError(t, err, "Should not happen")
+	tempDir := utils.NewTempDirectory(tempDirPath)
+
+	policyExample := createPolicy(t)
+	o2p := NewOscal2Policy(policyDir, tempDir)
+	err = o2p.Generate(policyExample)
+	assert.NoError(t, err, "Should not happen")
+}
+
+func TestConfigure(t *testing.T) {
+	plugin := NewPlugin()
+	configuration := map[string]string{
+		"policy-dir": "not-exist",
+	}
+	err := plugin.Configure(context.Background(), configuration)
+	require.EqualError(t, err, "path \"not-exist\": stat not-exist: no such file or directory")
+
+	policyDir := utils.PathFromInternalDirectory("./testdata/kyverno/policy-resources")
+	configuration["policy-dir"] = policyDir
+	err = plugin.Configure(context.Background(), configuration)
+	require.NoError(t, err)
+}
+
+func createPolicy(t *testing.T) []extensions.RuleSet {
+	cdPath := utils.PathFromInternalDirectory("./testdata/kyverno/component-definition.json")
+
+	file, err := os.Open(cdPath)
+	require.NoError(t, err)
+	defer file.Close()
+
+	compDef, err := models.NewComponentDefinition(file, validation.NoopValidator{})
+	require.NoError(t, err)
+	require.NotNil(t, compDef)
+	require.NotNil(t, compDef.Components)
+
+	var allComponents []components.Component
+	for _, comp := range *compDef.Components {
+		adapter := components.NewDefinedComponentAdapter(comp)
+		allComponents = append(allComponents, adapter)
+	}
+
+	store := rules.NewMemoryStore()
+	require.NoError(t, store.IndexAll(allComponents))
+
+	ruleSets, err := store.FindByComponent(context.TODO(), "Kyverno")
+	require.NoError(t, err)
+	return ruleSets
+}
