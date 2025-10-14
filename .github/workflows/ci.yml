@@ -31,8 +31,6 @@ jobs:
           GOBIN=${HOME}/.config/kustomize/plugin/policy.open-cluster-management.io/v1/policygenerator \
           go install open-cluster-management.io/policy-generator-plugin/cmd/PolicyGenerator@latest
       - name: Build
-        run: |
-          go build ./kyverno-plugin
-          go build ./ocm-plugin
+        run: make build
       - name: Run unit tests
-        run: go test ./... -coverprofile cover.outprofile cover.out
+        run: make test
